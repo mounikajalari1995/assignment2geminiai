@@ -2,26 +2,25 @@ options:
   logging: CLOUD_LOGGING_ONLY  # Specify how logging should be handled
 
 steps:
-  # Fetch the service account key from GCS
+  # Fetch the service account key from GCS and store it in Cloud Storage
   - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        # Download the service account key from GCS
         echo "Downloading service account key..."
-        gsutil cp gs://mnkcloud/service-account-key.json /tmp/service-account-key.json
+        gsutil cp gs://mnkcloud/service-account-key.json /workspace/service-account-key.json
         
         # Verify the key file
-        echo "Listing files in /tmp directory..."
-        ls -l /tmp
+        echo "Listing files in /workspace directory..."
+        ls -l /workspace
         
         echo "Displaying contents of the service account key file..."
-        cat /tmp/service-account-key.json
+        cat /workspace/service-account-key.json
         
         # Activate service account using the key file
         echo "Activating service account..."
-        gcloud auth activate-service-account --key-file=/tmp/service-account-key.json
+        gcloud auth activate-service-account --key-file=/workspace/service-account-key.json
 
   # Create Docker registry secret
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -29,10 +28,11 @@ steps:
     args:
       - '-c'
       - |
+        echo "Creating Docker registry secret..."
         kubectl create secret docker-registry regcred \
           --docker-server=gcr.io \
           --docker-username=_json_key \
-          --docker-password="$(cat /tmp/service-account-key.json)" \
+          --docker-password="$(cat /workspace/service-account-key.json)" \
           --docker-email=mounika8036@mounika8036-426015.iam.gserviceaccount.com
 
   # Build Docker image
