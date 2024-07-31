@@ -2,7 +2,7 @@ options:
   logging: CLOUD_LOGGING_ONLY  # Specify how logging should be handled
 
 steps:
-  # Fetch the service account key from GCS and store it in Cloud Storage
+  # Fetch the service account key from GCS
   - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
@@ -21,6 +21,15 @@ steps:
         # Activate service account using the key file
         echo "Activating service account..."
         gcloud auth activate-service-account --key-file=/workspace/service-account-key.json
+
+  # Set Kubernetes context
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Setting Kubernetes context..."
+        gcloud container clusters get-credentials geminiai --zone us-central1-a
 
   # Create Docker registry secret
   - name: 'gcr.io/cloud-builders/gcloud'
