@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemini-ai-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gemini-ai-app
+  template:
+    metadata:
+      labels:
+        app: gemini-ai-app
+    spec:
+      containers:
+      - name: gemini-ai-app
+        image: gcr.io/mounika8036-426015/geminiai:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gemini-ai-secret
+              key: api-key
+      imagePullSecrets:
+      - name: regcred

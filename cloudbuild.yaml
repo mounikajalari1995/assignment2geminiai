@@ -1,0 +1,65 @@
+options:
+  logging: CLOUD_LOGGING_ONLY  # Specify how logging should be handled
+
+steps:
+  # Create Kubernetes cluster
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Create the Kubernetes cluster
+        gcloud container clusters create geminiai \
+          --zone us-central1-a \
+          --num-nodes=1
+        
+        # Get credentials for the cluster
+        gcloud container clusters get-credentials geminiai --zone us-central1-a
+
+  # Fetch the service account key from GCS
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Download the service account key from GCS
+        gsutil cp gs://mnkcloud/service-account-key.json /tmp/service-account-key.json
+
+        # Optional: Verify the secret file
+        ls -l /tmp
+        cat /tmp/service-account-key.json
+
+        # Activate service account using the key file
+        gcloud auth activate-service-account --key-file=/tmp/service-account-key.json
+
+  # Create Docker registry secret
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        kubectl create secret docker-registry regcred \
+          --docker-server=gcr.io \
+          --docker-username=_json_key \
+          --docker-password="$(cat /tmp/service-account-key.json)" \
+          --docker-email=mounika8036@mounika8036-426015.iam.gserviceaccount.com
+
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/geminiai:$SHORT_SHA', '.']
+
+  # Push Docker image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/geminiai:$SHORT_SHA']
+
+  # Apply Kubernetes deployment
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['apply', '-f', './deployment.yaml']
+    env: ['CLOUDSDK_COMPUTE_ZONE=us-central1-a', 'CLOUDSDK_CONTAINER_CLUSTER=geminiai']
+
+  # Apply Kubernetes service
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['apply', '-f', './service.yaml']
+    env: ['CLOUDSDK_COMPUTE_ZONE=us-central1-a', 'CLOUDSDK_CONTAINER_CLUSTER=geminiai']
+
+timeout: 1200s  # Timeout for the build process
