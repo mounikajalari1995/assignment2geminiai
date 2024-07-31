@@ -23,22 +23,12 @@ steps:
         echo "Activating service account..."
         gcloud auth activate-service-account --key-file=/tmp/service-account-key.json
 
-  # Get credentials for the existing Kubernetes cluster
+  # Create Docker registry secret
   - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        # Get credentials for the existing cluster
-        gcloud container clusters get-credentials geminiai --zone us-central1-a
-
-  # Create Docker registry secret
-  - name: 'gcr.io/cloud-builders/kubectl'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        # Create Docker registry secret
         kubectl create secret docker-registry regcred \
           --docker-server=gcr.io \
           --docker-username=_json_key \
