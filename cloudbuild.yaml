@@ -2,20 +2,6 @@ options:
   logging: CLOUD_LOGGING_ONLY  # Specify how logging should be handled
 
 steps:
-  # Create Kubernetes cluster
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        # Create the Kubernetes cluster
-        gcloud container clusters create geminiai \
-          --zone us-central1-a \
-          --num-nodes=1
-        
-        # Get credentials for the cluster
-        gcloud container clusters get-credentials geminiai --zone us-central1-a
-
   # Fetch the service account key from GCS
   - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
@@ -23,21 +9,36 @@ steps:
       - '-c'
       - |
         # Download the service account key from GCS
+        echo "Downloading service account key..."
         gsutil cp gs://mnkcloud/service-account-key.json /tmp/service-account-key.json
-
-        # Optional: Verify the secret file
+        
+        # Verify the key file
+        echo "Listing files in /tmp directory..."
         ls -l /tmp
+        
+        echo "Displaying contents of the service account key file..."
         cat /tmp/service-account-key.json
-
+        
         # Activate service account using the key file
+        echo "Activating service account..."
         gcloud auth activate-service-account --key-file=/tmp/service-account-key.json
 
-  # Create Docker registry secret
+  # Get credentials for the existing Kubernetes cluster
   - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
+        # Get credentials for the existing cluster
+        gcloud container clusters get-credentials geminiai --zone us-central1-a
+
+  # Create Docker registry secret
+  - name: 'gcr.io/cloud-builders/kubectl'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Create Docker registry secret
         kubectl create secret docker-registry regcred \
           --docker-server=gcr.io \
           --docker-username=_json_key \
