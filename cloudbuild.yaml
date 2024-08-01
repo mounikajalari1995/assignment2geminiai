@@ -51,6 +51,10 @@ steps:
   # Push Docker image to Google Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/geminiai:$SHORT_SHA']
+     # Apply gemini-ai-secret
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['apply', '-f', './gemini-ai-secret.yaml']
+    env: ['CLOUDSDK_COMPUTE_ZONE=us-central1-a', 'CLOUDSDK_CONTAINER_CLUSTER=geminiai']
 
   # Apply Kubernetes deployment
   - name: 'gcr.io/cloud-builders/kubectl'
